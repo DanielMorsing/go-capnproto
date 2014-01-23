@@ -745,6 +745,22 @@ func (f *Field) json(w io.Writer) {
 	case FIELD_SLOT:
 		fs := f.Slot()
 		fprintf(w, "{ s := s.%s(); ", title(f.Name()))
+		for _, a := range f.Annotations().ToArray() {
+			if a.Id() == C.Jsonfmt {
+				jsfmt := C.Jsonfmts(a.Value().Struct())
+				jspkg := jsfmt.Pkg()
+				if jspkg != "" {
+					g_imported[jspkg] = true
+				}
+				g_imported["encoding/json"] = true
+				fprintf(w, "buf, err = json.Marshal(%s);", jsfmt.Fmt())
+				writeErrCheck(w)
+				fprintf(w, "_, err = b.Write(buf);")
+				writeErrCheck(w)
+				fprintf(w, " };")
+				return
+			}
+		}
 		fs.Type().json(w)
 		fprintf(w, "}; ")
 	case FIELD_GROUP:
