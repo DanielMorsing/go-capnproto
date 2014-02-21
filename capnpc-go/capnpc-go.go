@@ -793,7 +793,7 @@ func (t Type) json(w io.Writer) {
 		typ.json(w)
 		fprintf(w, "}; err = b.WriteByte(']'); };")
 		writeErrCheck(w)
-	case TYPE_VOID:
+	case TYPE_VOID, TYPE_INTERFACE:
 		fprintf(w, "_, err = b.WriteString(\"null\");")
 		writeErrCheck(w)
 	}
