@@ -744,7 +744,10 @@ func (f *Field) json(w io.Writer) {
 	switch f.Which() {
 	case FIELD_SLOT:
 		fs := f.Slot()
-		fprintf(w, "{ s := s.%s(); ", title(f.Name()))
+		fprintf(w, "{")
+		if fs.Type().hasAccessor() {
+			fprintf(w, "s := s.%s(); ", title(f.Name()))
+		}
 		fs.Type().json(w)
 		fprintf(w, "}; ")
 	case FIELD_GROUP:
@@ -754,6 +757,11 @@ func (f *Field) json(w io.Writer) {
 		n.jsonStruct(w)
 		fprintf(w, "};")
 	}
+}
+
+func (t Type) hasAccessor() bool {
+	w := t.Which()
+	return w != TYPE_INTERFACE && w != TYPE_VOID
 }
 
 func (t Type) json(w io.Writer) {
@@ -774,12 +782,19 @@ func (t Type) json(w io.Writer) {
 	case TYPE_LIST:
 		fprintf(w, "{ err = b.WriteByte('[');")
 		writeErrCheck(w)
-		fprintf(w, "for i, s := range s.ToArray() {")
+		if t.List().ElementType().hasAccessor() {
+			fprintf(w, "for i, s := range s.ToArray() {")
+		} else {
+			fprintf(w, "for i := 0; i < s.Len(); i++ {")
+		}
 		fprintf(w, `if i != 0 { _, err = b.WriteString(", "); };`)
 		writeErrCheck(w)
 		typ := t.List().ElementType()
 		typ.json(w)
 		fprintf(w, "}; err = b.WriteByte(']'); };")
+		writeErrCheck(w)
+	case TYPE_VOID:
+		fprintf(w, "_, err = b.WriteString(\"null\");")
 		writeErrCheck(w)
 	}
 }
